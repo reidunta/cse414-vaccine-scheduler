@@ -1,1 +1,1 @@
-# cse414-vaccine-scheduler
+# Python Application for Vaccine Scheduler
