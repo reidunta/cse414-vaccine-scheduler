@@ -18,10 +18,64 @@ current_caregiver = None
 
 
 def create_patient(tokens):
-    """
-    TODO: Part 1
-    """
-    pass
+    # create_patient <username> <password>
+    # check 1: the length for tokens need to be exactly 3 to include all information (with the operation name)
+    if len(tokens) != 3:
+        print("Failed to create user.")
+        return
+    
+    # idk if this is needed
+    if current_caregiver != None or current_patient != None:
+        print("Please sign out before creating a new user.")
+        return
+
+    username = tokens[1]
+    password = tokens[2]
+    # check 2: check if the username has been taken already
+    if username_exists_patient(username):
+        print("Username taken, try again.")
+        return
+
+    salt = Util.generate_salt()
+    hash = Util.generate_hash(password, salt)
+
+    # create the patient
+    patient = Patient(username, salt=salt, hash=hash)
+
+    # save to caregiver information to our database
+    try:
+        patient.save_to_db()
+    except pymssql.Error as e:
+        print("Create patient failed")
+        print("Db-Error:", e)
+        quit()
+    except Exception as e:
+        print("Create patient failed")
+        print(e)
+        return
+    print("Created user ", username)
+
+def username_exists_patient(username):
+    cm = ConnectionManager()
+    conn = cm.create_connection()
+
+    select_username = "SELECT * FROM Patients WHERE Username = %s"
+    try:
+        cursor = conn.cursor(as_dict=True)
+        cursor.execute(select_username, username)
+        #  returns false if the cursor is not before the first record or if there are no rows in the ResultSet.
+        for row in cursor:
+            return row['Username'] is not None
+    except pymssql.Error as e:
+        print("Error occurred when checking username")
+        print("Db-Error:", e)
+        quit()
+    except Exception as e:
+        print("Error occurred when checking username")
+        print("Error:", e)
+    finally:
+        cm.close_connection()
+    return False
 
 
 def create_caregiver(tokens):
@@ -82,10 +136,39 @@ def username_exists_caregiver(username):
 
 
 def login_patient(tokens):
-    """
-    TODO: Part 1
-    """
-    pass
+    # login_patient <username> <password>
+    # check 1: if someone's already logged-in, they need to log out first
+    global current_patient, current_caregiver
+    if current_caregiver is not None or current_patient is not None:
+        print("User already logged in, try again")
+        return
+
+    # check 2: the length for tokens need to be exactly 3 to include all information (with the operation name)
+    if len(tokens) != 3:
+        print("Login patient failed")
+        return
+
+    username = tokens[1]
+    password = tokens[2]
+
+    patient = None
+    try:
+        patient = Patient(username, password=password).get()
+    except pymssql.Error as e:
+        print("Login patient failed")
+        print("Db-Error:", e)
+        quit()
+    except Exception as e:
+        print("Login patient failed")
+        print("Error:", e)
+        return
+
+    # check if the login was successful
+    if patient is None:
+        print("Login patient failed")
+    else:
+        print("Logged in as " + username)
+        current_patient = patient
 
 
 def login_caregiver(tokens):
@@ -245,30 +328,35 @@ def show_appointments(tokens):
 
 
 def logout(tokens):
-    """
-    TODO: Part 2
-    """
-    pass
+    global current_caregiver, current_patient
+    if current_caregiver is not None:
+        print(f"Logging out {current_caregiver.username}!")
+        current_caregiver = None
+    elif current_patient is not None:
+        print(f"Logging out {current_patient.username}!")
+        current_patient = None
+    else:
+        print("Nobody is logged in!")
 
 
 def start():
     stop = False
-    print()
-    print(" *** Please enter one of the following commands *** ")
-    print("> create_patient <username> <password>")  # //TODO: implement create_patient (Part 1)
-    print("> create_caregiver <username> <password>")
-    print("> login_patient <username> <password>")  # // TODO: implement login_patient (Part 1)
-    print("> login_caregiver <username> <password>")
-    print("> search_caregiver_schedule <date>")  # // TODO: implement search_caregiver_schedule (Part 2)
-    print("> reserve <date> <vaccine>")  # // TODO: implement reserve (Part 2)
-    print("> upload_availability <date>")
-    print("> cancel <appointment_id>")  # // TODO: implement cancel (extra credit)
-    print("> add_doses <vaccine> <number>")
-    print("> show_appointments")  # // TODO: implement show_appointments (Part 2)
-    print("> logout")  # // TODO: implement logout (Part 2)
-    print("> Quit")
-    print()
     while not stop:
+        print()
+        print(" *** Please enter one of the following commands *** ")
+        print("> create_patient <username> <password>")  # //TODO: implement create_patient (Part 1)
+        print("> create_caregiver <username> <password>")
+        print("> login_patient <username> <password>")  # // TODO: implement login_patient (Part 1)
+        print("> login_caregiver <username> <password>")
+        print("> search_caregiver_schedule <date>")  # // TODO: implement search_caregiver_schedule (Part 2)
+        print("> reserve <date> <vaccine>")  # // TODO: implement reserve (Part 2)
+        print("> upload_availability <date>")
+        print("> cancel <appointment_id>")  # // TODO: implement cancel (extra credit)
+        print("> add_doses <vaccine> <number>")
+        print("> show_appointments")  # // TODO: implement show_appointments (Part 2)
+        print("> logout")  # // TODO: implement logout (Part 2)
+        print("> Quit")
+        print()
         response = ""
         print("> ", end='')
 
