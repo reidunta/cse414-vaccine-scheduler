@@ -219,14 +219,17 @@ def search_caregiver_schedule(tokens):
 
     date = tokens[1]
 
-    date_tokens = date.split("-")
-    month = int(date_tokens[0])
-    day = int(date_tokens[1])
-    year = int(date_tokens[2])
     try:
-        d = datetime.date(year, month, day)
-    except ValueError:
-        print("Please try again")
+        date_tokens = date.split("-")
+        month = int(date_tokens[0])
+        day = int(date_tokens[1])
+        year = int(date_tokens[2])
+        try:
+            d = datetime.date(year, month, day)
+        except ValueError:
+            print("Please try again")
+    except:
+        print("Invalid date. Please try again")
 
     cm = ConnectionManager()
     conn = cm.create_connection()
@@ -268,14 +271,17 @@ def reserve(tokens):
     vaccine = tokens[2]
 
     # assume input is hyphenated in the format mm-dd-yyyy
-    date_tokens = date.split("-")
-    month = int(date_tokens[0])
-    day = int(date_tokens[1])
-    year = int(date_tokens[2])
     try:
-        d = datetime.date(year, month, day)
-    except ValueError:
-        print("Please try again")
+        date_tokens = date.split("-")
+        month = int(date_tokens[0])
+        day = int(date_tokens[1])
+        year = int(date_tokens[2])
+        try:
+            d = datetime.date(year, month, day)
+        except ValueError:
+            print("Please try again")
+    except:
+        print("Invalid date. Please try again")
 
     caregiver = None
     
@@ -491,21 +497,18 @@ def show_appointments(tokens):
         get_appointments = "SELECT Id, VaccineName, Time, PatientUsername FROM Reservations WHERE CaregiverUsername = %s"
         try:
             cursor.execute(get_appointments, current_caregiver.get_username())
-            cursor_tuple = list(cursor)
-            if len(cursor_tuple) == 0:
+            cursor_list = list(cursor)
+            if len(cursor_list) == 0:
                 print("No current appointments!")
-                return
-            cursor_list = cursor_tuple[0]
-            appointment_id = cursor_list[0]
-            vaccine_name = cursor_list[1]
-            date = cursor_list[2]
-            patient = cursor_list[3]
+            else:
+                for appointment_id, vaccine_name, date, patient in cursor_list:
+                    print(f"{appointment_id} {vaccine_name} {date} {patient}")
         except pymssql.Error:
             print("Please try again")
             cm.close_connection()
             return
-        
-        print(f"{appointment_id} {vaccine_name} {date} {patient}")
+        finally:
+            cm.close_connection()
 
     elif current_patient is not None:
 
@@ -517,20 +520,18 @@ def show_appointments(tokens):
         get_appointments = "SELECT Id, VaccineName, Time, CaregiverUsername FROM Reservations WHERE PatientUsername = %s"
         try:
             cursor.execute(get_appointments, current_patient.get_username())
-            cursor_tuple = list(cursor)
-            if len(cursor_tuple) == 0:
+            cursor_list = list(cursor)
+            if len(cursor_list) == 0:
                 print("No current appointments!")
-                return
-            cursor_list = cursor_tuple[0]
-            appointment_id = cursor_list[0]
-            vaccine_name = cursor_list[1]
-            date = cursor_list[2]
-            caregiver = cursor_list[3]
+            else:
+                for appointment_id, vaccine_name, date, caregiver in cursor_list:
+                    print(f"{appointment_id} {vaccine_name} {date} {caregiver}")
         except pymssql.Error:
             print("Please try again")
             cm.close_connection()
             return
-        print(f"{appointment_id} {vaccine_name} {date} {caregiver}")
+        finally:
+            cm.close_connection()
 
     else:
         print("Please login first")
