@@ -29,5 +29,6 @@ CREATE TABLE Reservations (
     CaregiverUsername varchar(255) REFERENCES Caregivers,
     Time date,
     VaccineName varchar(255) REFERENCES Vaccines,
-    PRIMARY KEY (PatientUsername, CaregiverUsername, date)
+    Id varchar(255),
+    PRIMARY KEY (Id)
 );
